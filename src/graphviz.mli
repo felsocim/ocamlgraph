@@ -396,6 +396,10 @@ module type GraphWithDotAttrs = sig
   (** The box (if exists) which the vertex belongs to. Boxes with same
          names are not distinguished and so they should have the same
          attributes. *)
+       
+  val get_nested_graphs : V.t -> t list
+  (** The list of nested graphs to be rendered as subgraphs (clusters) of the
+      main graph. *)
 
 end
 
@@ -409,6 +413,8 @@ module Dot
        module E : sig type t val src : t -> V.t val dst : t -> V.t end
        val iter_vertex : (V.t -> unit) -> t -> unit
        val iter_edges_e : (E.t -> unit) -> t -> unit
+       val fold_vertex : (V.t -> 'a -> 'a) -> t -> 'a -> 'a
+       val in_degree : t -> V.t -> int
 
        (** Graph, vertex and edge attributes. *)
 
@@ -422,6 +428,10 @@ module Dot
        (** The box (if exists) which the vertex belongs to. Boxes with same
            names are not distinguished and so they should have the same
            attributes. *)
+       
+       val get_nested_graphs : V.t -> t list
+       (** The list of nested graphs to be rendered as subgraphs (clusters) of
+           the main graph. *)
 
        val default_edge_attributes: t -> DotAttributes.edge list
        val edge_attributes: E.t -> DotAttributes.edge list
@@ -436,6 +446,14 @@ sig
   val output_graph: out_channel -> X.t -> unit
   (** [output_graph oc graph] pretty prints the graph [graph] in the dot
       language on the channel [oc]. *)
+
+  val fprint_nested_graph: formatter -> X.t -> unit
+  (** [fprint_nested_graph ppf graph] pretty prints the nested graph [graph] in
+      the CGL language on the formatter [ppf]. *)
+
+  val output_nested_graph: out_channel -> X.t -> unit
+  (** [output_nested_graph oc graph] pretty prints the nested graph [graph] in
+      the dot language on the channel [oc]. *)
 
 end
 
@@ -506,6 +524,8 @@ module Neato
 
        val iter_vertex : (V.t -> unit) -> t -> unit
        val iter_edges_e : (E.t -> unit) -> t -> unit
+       val fold_vertex : (V.t -> 'a -> 'a) -> t -> 'a -> 'a
+       val in_degree : t -> V.t -> int
 
        (** Graph, vertex and edge attributes. *)
 
@@ -519,6 +539,10 @@ module Neato
        (** The box (if exists) which the vertex belongs to. Boxes with same
            names are not distinguished and so they should have the same
            attributes. *)
+       
+       val get_nested_graphs : V.t -> t list
+       (** The list of nested graphs to be rendered as subgraphs (clusters) of
+           the main graph. *)
 
        val default_edge_attributes: t -> NeatoAttributes.edge list
        val edge_attributes: E.t -> NeatoAttributes.edge list

@@ -194,6 +194,8 @@ module SubTreeMake(G: Graphviz.GraphWithDotAttrs) = struct
       if TM.is_ghost_node v t then None
       else G.get_subgraph (TM.get_graph_vertex v t)
 
+    let get_nested_graphs _ = []
+
   end
 
   include Build(G)(Tree)(TM)

@@ -113,6 +113,7 @@ struct
     let default_edge_attributes _ = []
     let edge_attributes e = [ `Label (string_of_int (E.label e) ) ]
     let get_subgraph _ = None
+    let get_nested_graphs _ = []
   end
   module Dot_ = Graphviz.Dot(Display)
   module Neato = Graphviz.Neato(Display)

@@ -40,6 +40,7 @@ module Display = struct
   let default_edge_attributes _ = []
   let edge_attributes _ = [ `HtmlLabel "f&#36;oo" ]
   let get_subgraph _ = None
+  let get_nested_graphs _ = []
 end
 module DotOutput = Graphviz.Dot(Display)
 

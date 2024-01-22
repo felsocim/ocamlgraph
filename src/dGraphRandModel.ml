@@ -63,6 +63,7 @@ module GraphAttrs = struct
   let default_edge_attributes _ = []
   let edge_attributes _ = []
   let get_subgraph _ = None
+  let get_nested_graphs _ = []
 end
 
 module Model = DGraphModel.Make(GraphAttrs)

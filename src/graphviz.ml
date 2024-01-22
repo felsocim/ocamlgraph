@@ -445,6 +445,8 @@ module MakeEngine
 
        val iter_vertex : (V.t -> unit) -> t -> unit
        val iter_edges_e : (E.t -> unit) -> t -> unit
+       val fold_vertex : (V.t -> 'a -> 'a) -> t -> 'a -> 'a
+       val in_degree : t -> V.t -> int
 
        val graph_attributes: t -> EN.Attributes.graph list
 
@@ -455,6 +457,7 @@ module MakeEngine
        val default_edge_attributes: t -> EN.Attributes.edge list
        val edge_attributes: E.t -> EN.Attributes.edge list
        val get_subgraph : V.t -> EN.Attributes.subgraph option
+       val get_nested_graphs : V.t -> t list
      end) =
 struct
 
@@ -583,6 +586,80 @@ struct
   let output_graph oc graph =
     let ppf = formatter_of_out_channel oc in
     fprint_graph ppf graph;
+    pp_print_flush ppf ()
+
+  (** [fprint_nested_graph ppf graph] pretty prints the nested graph [graph] in
+      the CGL language on the formatter [ppf]. *)
+  let fprint_nested_graph ppf graph =
+    let rec fprint_nested_graph_aux ppf graph name =
+      (* Printing opening. *)
+      if name <> "" then
+        fprintf ppf "@[<v 2>subgraph cluster_%s { %a"
+          name
+          fprint_graph_attributes (X.graph_attributes graph)
+      else
+        fprintf ppf "@[<v>%s G {@ @[<v 2>  %a"
+          EN.opening
+          fprint_graph_attributes (X.graph_attributes graph);
+      (* Printing nodes. *)
+      let default_node_attributes = X.default_vertex_attributes graph in
+      if default_node_attributes <> [] then
+        begin
+          fprintf ppf "node%a;@ "
+            (fprint_square_not_empty
+               (EN.Attributes.fprint_vertex_list COMMA))
+            default_node_attributes;
+        end;
+      X.iter_vertex
+        (function node ->
+           fprintf ppf "%s%a;@ "
+             (X.vertex_name node)
+             (fprint_square_not_empty
+                (EN.Attributes.fprint_vertex_list COMMA))
+             (X.vertex_attributes node)
+        ) graph;
+      (* Printing nested graphs. *)
+      X.iter_vertex
+        (function node ->
+           let ngs = X.get_nested_graphs node in
+           List.iter (fun ng ->
+               let root = X.fold_vertex (fun v acc ->
+                                  if X.in_degree ng v < 1 then v::acc else acc
+                                ) ng [] in
+               let root = List.hd root in
+               let root = X.vertex_name root in
+               fprint_nested_graph_aux ppf ng (X.vertex_name node);
+               fprintf ppf "%s %s %s;@ " (X.vertex_name node) EN.edge_arrow root
+             ) ngs
+        ) graph;
+      (* Printing edges *)
+      let default_edge_attributes = X.default_edge_attributes graph in
+      if default_edge_attributes <> [] then
+        fprintf ppf "edge%a;@ "
+          (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
+          default_edge_attributes;
+      X.iter_edges_e (function edge ->
+                        fprintf ppf "%s %s %s%a;@ "
+                          (X.vertex_name (X.E.src edge))
+                          EN.edge_arrow
+                          (X.vertex_name (X.E.dst edge))
+                          (fprint_square_not_empty
+                             (EN.Attributes.fprint_edge_list COMMA))
+                          (X.edge_attributes edge)
+        ) graph;
+      (* Printing closing. *)
+      if name <> "" then
+        fprintf ppf "};@]@\n" 
+      else
+        fprintf ppf "@]}@;@]"
+    in
+    fprint_nested_graph_aux ppf graph ""
+  
+  (** [output_nested_graph oc graph] pretty prints the nested graph [graph] in
+      the dot language on the channel [oc]. *)
+  let output_nested_graph oc graph =
+    let ppf = formatter_of_out_channel oc in
+    fprint_nested_graph ppf graph;
     pp_print_flush ppf ()
 
 end
@@ -843,6 +920,10 @@ module type GraphWithDotAttrs = sig
   (** The box (if exists) which the vertex belongs to. Boxes with same
          names are not distinguished and so they should have the same
          attributes. *)
+
+  val get_nested_graphs : V.t -> t list
+  (** The list of nested graphs to be rendered as subgraphs (clusters) of the
+         main graph. *)
 end
 
 module Dot =
